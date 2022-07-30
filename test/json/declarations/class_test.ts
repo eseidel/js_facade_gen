@@ -1,5 +1,4 @@
 import {ConvertedSyntaxKind} from '../../../lib/json/converted_syntax_kinds';
-
 import {expectTranslateJSON, prettyStringify} from '../json_test_support';
 
 describe('classes', () => {

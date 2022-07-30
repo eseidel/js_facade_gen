@@ -476,9 +476,9 @@ export class FacadeConverter extends base.TranspilerBase {
               this.generateTypeList(node.typeArguments, addInsideComment(options)) + '>';
           break;
         case 'Record':
-          // TODO(derekx): It should be possible to generate a Readonly version of a class by
-          // handling it in the same way as other readonly types. That is, emitting another class
-          // like JS$ReadonlyX whose members don't have setters.
+        // TODO(derekx): It should be possible to generate a Readonly version of a class by
+        // handling it in the same way as other readonly types. That is, emitting another class
+        // like JS$ReadonlyX whose members don't have setters.
         default:
           name =
               this.generateDartName(node.typeName, setTypeArguments(options, node.typeArguments));
@@ -624,6 +624,7 @@ export class FacadeConverter extends base.TranspilerBase {
 
   getValueDeclarationOfSymbol(symbol: ts.Symbol, n?: ts.Node): ts.Declaration|undefined {
     if (!symbol || this.tc.isUnknownSymbol(symbol)) {
+      console.log('Unknown symbol: ' + (symbol ? symbol.name : 'null'));
       return undefined;
     }
     if (!symbol.valueDeclaration) {
@@ -635,6 +636,7 @@ export class FacadeConverter extends base.TranspilerBase {
 
   getTypeDeclarationOfSymbol(symbol: ts.Symbol, n?: ts.Node): ts.Declaration|undefined {
     if (!symbol || this.tc.isUnknownSymbol(symbol)) {
+      console.log('Unknown symbol: ' + (symbol ? symbol.name : 'null'));
       return undefined;
     }
     const typeDeclaration = symbol.declarations.find((declaration: ts.Declaration) => {
@@ -642,7 +644,7 @@ export class FacadeConverter extends base.TranspilerBase {
           ts.isTypeAliasDeclaration(declaration) || ts.isTypeParameterDeclaration(declaration);
     });
     if (!typeDeclaration) {
-      this.reportError(n, `no type declarations for symbol ${symbol.name}`);
+      console.log(`no type declarations for symbol ${symbol.name}`);
       return undefined;
     }
     return typeDeclaration;
@@ -967,6 +969,7 @@ export class FacadeConverter extends base.TranspilerBase {
       symbol = this.tc.getAliasedSymbol(symbol);
     }
     const decl = this.getTypeDeclarationOfSymbol(symbol, n);
+    console.log('decl: ' + decl);
 
     const fileName = relative('./node_modules/typescript/lib', decl.getSourceFile().fileName);
     const canonicalFileName = fileName.replace(/(\.d)?\.ts$/, '')

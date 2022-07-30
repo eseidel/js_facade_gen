@@ -1,4 +1,5 @@
 import {ExportAssignment as tsExportAssignment} from 'typescript';
+
 import {convertExpression, convertName} from '../conversions';
 import {ConvertedSyntaxKind} from '../converted_syntax_kinds';
 import {Node} from '../node';
