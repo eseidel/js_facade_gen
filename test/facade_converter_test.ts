@@ -32,7 +32,8 @@ describe('type based translation', () => {
 @JS()
 external Node get n;`);
 
-        expectWithTypes('const xhr: XMLHttpRequest;').to.equal(`import "dart:html" show HttpRequest;
+        expectWithTypes('const xhr: XMLHttpRequest;')
+            .to.equal(`import "dart:html" show HttpRequest;
 
 @JS()
 external HttpRequest get xhr;`);
