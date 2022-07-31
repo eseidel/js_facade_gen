@@ -1,7 +1,7 @@
 import * as ts from 'typescript';
 
 import * as base from './base';
-import {FacadeConverter} from './facade_converter';
+import { FacadeConverter } from './facade_converter';
 
 /**
  * To support arbitrary d.ts files in Dart we often have to merge two TypeScript
@@ -9,7 +9,7 @@ import {FacadeConverter} from './facade_converter';
  * overloads, type aliases, and union types.
  */
 export class MergedType {
-  constructor(private fc: FacadeConverter) {}
+  constructor(private fc: FacadeConverter) { }
 
   merge(t?: ts.TypeNode) {
     if (t) {
@@ -36,13 +36,13 @@ export class MergedType {
           // function types. TODO(jacobr): handle them for Function types?
           const typeRef = <ts.TypeReferenceNode>t;
           const decl =
-              this.fc.getTypeDeclarationOfSymbol(this.fc.getSymbolAtLocation(typeRef.typeName));
+            this.fc.getTypeDeclarationOfSymbol(this.fc.getSymbolAtLocation(typeRef.typeName));
           if (decl && ts.isTypeAliasDeclaration(decl)) {
             const alias = decl;
             if (!base.supportedTypeDeclaration(alias)) {
               if (typeRef.typeArguments) {
                 console.log(
-                    'Warning: typeReference with arguements not supported yet:' + t.getText());
+                  'Warning: typeReference with arguements not supported yet:' + t.getText());
               }
 
               this.merge(alias.type);
@@ -53,7 +53,7 @@ export class MergedType {
         default:
           break;
       }
-      this.types.set(this.fc.generateDartTypeName(t, {insideComment: true}), t);
+      this.types.set(this.fc.generateDartTypeName(t, { insideComment: true }), t);
     }
   }
 
@@ -65,10 +65,9 @@ export class MergedType {
     if (names.length === 1) {
       return this.types.get(names[0]);
     }
-    let union = <ts.UnionTypeNode>ts.createNode(ts.SyntaxKind.UnionType);
+    let types = ts.factory.createNodeArray(Array.from(this.types.values()));
+    let union = ts.factory.createUnionTypeNode(types);
     base.copyLocation(this.types.get(names[0]), union);
-
-    union.types = ts.createNodeArray(Array.from(this.types.values()));
     return union;
   }
 
@@ -119,12 +118,12 @@ export class MergedParameter {
   }
 
   toParameterDeclaration(): ts.ParameterDeclaration {
-    let ret = <ts.ParameterDeclaration>ts.createNode(ts.SyntaxKind.Parameter);
+    let ret = ts.factory.createParameterDeclaration();
     let nameIdentifier = <ts.Identifier>ts.createNode(ts.SyntaxKind.Identifier);
     nameIdentifier.escapedText = ts.escapeLeadingUnderscores(Array.from(this.name).join('_'));
     ret.name = nameIdentifier;
     if (this.optional) {
-      ret.questionToken = ts.createToken(ts.SyntaxKind.QuestionToken);
+      ret.questionToken = ts.factory.createToken(ts.SyntaxKind.QuestionToken);
     }
     base.copyLocation(this.textRange, ret);
     ret.type = this.type.toTypeNode();
@@ -187,7 +186,7 @@ export class MergedTypeParameters {
   private mergedParameters: Map<string, MergedTypeParameter> = new Map();
   private textRange: ts.TextRange;
 
-  constructor(private fc: FacadeConverter) {}
+  constructor(private fc: FacadeConverter) { }
 
   merge(params: ts.NodeArray<ts.TypeParameterDeclaration>) {
     if (!params) return;
@@ -234,8 +233,8 @@ export class MergedTypeParameters {
  */
 export class MergedMember {
   constructor(
-      public constituents: ts.SignatureDeclaration[],
-      public mergedDeclaration: ts.SignatureDeclaration) {}
+    public constituents: ts.SignatureDeclaration[],
+    public mergedDeclaration: ts.SignatureDeclaration) { }
 
   isOverloaded(): boolean {
     return this.constituents.length > 1;
@@ -246,8 +245,8 @@ export class MergedMember {
  * Normalize a SourceFile.
  */
 export function normalizeSourceFile(
-    f: ts.SourceFile, fc: FacadeConverter, fileSet: Set<string>, renameConflictingTypes = false,
-    explicitStatic = false) {
+  f: ts.SourceFile, fc: FacadeConverter, fileSet: Set<string>, renameConflictingTypes = false,
+  explicitStatic = false) {
   const nodeReplacements: Map<ts.Node, ts.Node> = new Map();
   const modules: Map<string, ts.ModuleDeclaration> = new Map();
 
@@ -282,8 +281,8 @@ export function normalizeSourceFile(
    * Searches for a constructor member within a type literal or an interface. If found, it returns
    * that member. Otherwise, it returns undefined.
    */
-  function findConstructorInType(declaration: ts.TypeLiteralNode|
-                                 ts.InterfaceDeclaration): base.Constructor|undefined {
+  function findConstructorInType(declaration: ts.TypeLiteralNode |
+    ts.InterfaceDeclaration): base.Constructor | undefined {
     // Example TypeScript definition matching the type literal case:
     //
     // declare interface XType {
@@ -337,11 +336,11 @@ export function normalizeSourceFile(
   /**
    * Returns the type of object created by a given constructor.
    */
-  function getConstructedObjectType(constructor: base.Constructor): ts.ObjectTypeDeclaration|
-      undefined {
+  function getConstructedObjectType(constructor: base.Constructor): ts.ObjectTypeDeclaration |
+    undefined {
     const constructedTypeSymbol: ts.Symbol = constructor &&
-        ts.isTypeReferenceNode(constructor.type) &&
-        fc.tc.getTypeAtLocation(constructor.type).getSymbol();
+      ts.isTypeReferenceNode(constructor.type) &&
+      fc.tc.getTypeAtLocation(constructor.type).getSymbol();
     if (!constructedTypeSymbol) {
       return;
     }
@@ -360,7 +359,7 @@ export function normalizeSourceFile(
       }
       return false;
     }) as ts.ObjectTypeDeclaration |
-        undefined;
+      undefined;
   }
 
   function mergeVariablesIntoClasses(n: ts.Node, classes: Map<string, base.ClassLike>) {
@@ -381,13 +380,13 @@ export function normalizeSourceFile(
 
           // We need to find the declaration of the variable's type in order to acccess the
           // members of that type.
-          let variableTypeDeclaration: ts.TypeLiteralNode|ts.InterfaceDeclaration;
+          let variableTypeDeclaration: ts.TypeLiteralNode | ts.InterfaceDeclaration;
           if (ts.isTypeReferenceNode(variableType)) {
             variableTypeDeclaration =
-                fc.getDeclarationOfReferencedType(variableType, (declaration: ts.Declaration) => {
-                  return ts.isTypeLiteralNode(declaration) ||
-                      ts.isInterfaceDeclaration(declaration);
-                }) as ts.TypeLiteralNode | ts.InterfaceDeclaration;
+              fc.getDeclarationOfReferencedType(variableType, (declaration: ts.Declaration) => {
+                return ts.isTypeLiteralNode(declaration) ||
+                  ts.isInterfaceDeclaration(declaration);
+              }) as ts.TypeLiteralNode | ts.InterfaceDeclaration;
           } else if (ts.isTypeLiteralNode(variableType)) {
             variableTypeDeclaration = variableType;
           }
@@ -412,33 +411,33 @@ export function normalizeSourceFile(
             // These properties do not exist on TypeLiteralNodes.
             let clazzTypeParameters, clazzHeritageClauses;
             if (ts.isClassDeclaration(constructedType) ||
-                ts.isInterfaceDeclaration(constructedType)) {
+              ts.isInterfaceDeclaration(constructedType)) {
               clazzTypeParameters = base.cloneNodeArray(constructedType.typeParameters);
               clazzHeritageClauses = base.cloneNodeArray(constructedType.heritageClauses);
             }
 
-            let clazz: ts.InterfaceDeclaration|ts.ClassDeclaration;
+            let clazz: ts.InterfaceDeclaration | ts.ClassDeclaration;
             if (ts.isClassDeclaration(constructedType)) {
-              clazz = ts.createClassDeclaration(
-                  base.cloneNodeArray(constructedType.decorators),
-                  base.cloneNodeArray(constructedType.modifiers),
-                  ts.createIdentifier(base.ident(variableDecl.name)),
-                  base.cloneNodeArray(clazzTypeParameters),
-                  base.cloneNodeArray(clazzHeritageClauses),
-                  base.cloneNodeArray(constructedType.members));
+              clazz = ts.factory.createClassDeclaration(
+                base.cloneNodeArray(constructedType.decorators),
+                base.cloneNodeArray(constructedType.modifiers),
+                ts.factory.createIdentifier(base.ident(variableDecl.name)),
+                base.cloneNodeArray(clazzTypeParameters),
+                base.cloneNodeArray(clazzHeritageClauses),
+                base.cloneNodeArray(constructedType.members));
             } else if (
-                ts.isTypeLiteralNode(constructedType) ||
-                ts.isInterfaceDeclaration(constructedType)) {
+              ts.isTypeLiteralNode(constructedType) ||
+              ts.isInterfaceDeclaration(constructedType)) {
               // TODO(derekx): Try creating abstract class declarations in these cases.
               // InterfaceDeclarations get emitted as abstract classes regardless, it would just
               // make the JSON output more accurate.
-              clazz = ts.createInterfaceDeclaration(
-                  base.cloneNodeArray(constructedType.decorators),
-                  base.cloneNodeArray(constructedType.modifiers),
-                  ts.createIdentifier(base.ident(variableDecl.name)),
-                  base.cloneNodeArray(clazzTypeParameters),
-                  base.cloneNodeArray(clazzHeritageClauses),
-                  base.cloneNodeArray(constructedType.members));
+              clazz = ts.factory.createInterfaceDeclaration(
+                base.cloneNodeArray(constructedType.decorators),
+                base.cloneNodeArray(constructedType.modifiers),
+                ts.factory.createIdentifier(base.ident(variableDecl.name)),
+                base.cloneNodeArray(clazzTypeParameters),
+                base.cloneNodeArray(clazzHeritageClauses),
+                base.cloneNodeArray(constructedType.members));
               (clazz as base.ExtendedInterfaceDeclaration).constructedType = constructedType;
             }
 
@@ -457,7 +456,7 @@ export function normalizeSourceFile(
               if (variableSymbol.getDeclarations()) {
                 for (const declaration of variableSymbol.getDeclarations()) {
                   if (ts.isInterfaceDeclaration(declaration) ||
-                      ts.isTypeAliasDeclaration(declaration)) {
+                    ts.isTypeAliasDeclaration(declaration)) {
                     declaration.name.escapedText = ts.escapeLeadingUnderscores(name + 'Type');
                   }
                 }
@@ -479,7 +478,7 @@ export function normalizeSourceFile(
           }
 
           const members = existing.members;
-          variableTypeDeclaration.members.forEach((member: ts.TypeElement|ts.ClassElement) => {
+          variableTypeDeclaration.members.forEach((member: ts.TypeElement | ts.ClassElement) => {
             // Array.prototype.push is used below as a small hack to get around NodeArrays being
             // readonly.
             switch (member.kind) {
@@ -507,7 +506,7 @@ export function normalizeSourceFile(
                   // Finds all existing declarations of this property in the inheritance
                   // hierarchy of this class.
                   const existingDeclarations =
-                      findPropertyInHierarchy(base.ident(member.name), existing, classes);
+                    findPropertyInHierarchy(base.ident(member.name), existing, classes);
 
                   if (existingDeclarations.size) {
                     for (const existingDecl of existingDeclarations) {
@@ -547,8 +546,8 @@ export function normalizeSourceFile(
     }
   }
 
-  function findPropertyInClass(propName: string, classLike: base.ClassLike): ts.ClassElement|
-      undefined {
+  function findPropertyInClass(propName: string, classLike: base.ClassLike): ts.ClassElement |
+    undefined {
     const members = classLike.members as ts.NodeArray<ts.ClassElement>;
     return members.find((member: ts.ClassElement) => {
       if (member.name && base.ident(member.name) === propName) {
@@ -558,8 +557,8 @@ export function normalizeSourceFile(
   }
 
   function findPropertyInHierarchy(
-      propName: string, classLike: base.ClassLike,
-      classes: Map<string, base.ClassLike>): Set<ts.ClassElement> {
+    propName: string, classLike: base.ClassLike,
+    classes: Map<string, base.ClassLike>): Set<ts.ClassElement> {
     const propertyDeclarations = new Set<ts.ClassElement>();
     const declaration = findPropertyInClass(propName, classLike);
     if (declaration) propertyDeclarations.add(declaration);
